@@ -1,8 +1,6 @@
 # DLAM Monte Carlo Core
 
-A clean, publication-grade Python implementation of the **Monte Carlo simulation core** for the Dreaming L-directional Associative Memory (DLAM) model discussed in the manuscript:
-
-- `Simulazioni/Monte Carlo/v4/tex/paper_v3.tex`
+A clean, publication-grade Python implementation of the **Monte Carlo simulation core** for the Dreaming L-directional Associative Memory (DLAM) model.
 
 This repository intentionally focuses on the **core simulator** and excludes heavy numerical experiment pipelines, plotting batches, and manuscript-specific post-processing.
 
