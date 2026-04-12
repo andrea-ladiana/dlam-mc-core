@@ -57,7 +57,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q --cov=dlam_mc_core --cov-report=term-missing --cov-fail-under=81"
+addopts = "-q --cov=dlam_mc_core --cov-report=term-missing --cov-fail-under=90"
 
 [tool.coverage.run]
 branch = true
