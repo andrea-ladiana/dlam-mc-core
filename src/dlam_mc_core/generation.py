@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 
 from .random import rademacher
 from .types import LayerData, LayerPack, SimParams
@@ -13,7 +14,7 @@ def generate_layer(
     M: int,
     r: float,
     rng: np.random.Generator,
-    dtype=np.float64,
+    dtype: npt.DTypeLike = np.float64,
 ) -> LayerData:
     """Generate one data layer according to the DLAM definitions.
 
@@ -45,7 +46,11 @@ def generate_layer(
     return LayerData(Xi=xi, Eta=eta, U=u, hat_xi=hat_xi, C=c, N=N, M=M, r=r, rho=rho)
 
 
-def generate_layer_pack(params: SimParams, rng: np.random.Generator, dtype=np.float64) -> LayerPack:
+def generate_layer_pack(
+    params: SimParams,
+    rng: np.random.Generator,
+    dtype: npt.DTypeLike = np.float64,
+) -> LayerPack:
     """Generate all three simulation layers from one parameter object."""
     l1 = generate_layer(K=params.K, N=params.N1, M=params.M1, r=params.r1, rng=rng, dtype=dtype)
     l2 = generate_layer(K=params.K, N=params.N2, M=params.M2, r=params.r2, rng=rng, dtype=dtype)

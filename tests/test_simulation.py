@@ -1,3 +1,5 @@
+import dataclasses as dc
+
 import numpy as np
 import pytest
 
@@ -5,7 +7,7 @@ from dlam_mc_core import SimParams, run_simulation
 
 
 def _small_params(**kwargs) -> SimParams:
-    base = dict(
+    base = SimParams(
         N1=32,
         N2=32,
         N3=32,
@@ -25,8 +27,7 @@ def _small_params(**kwargs) -> SimParams:
         init_mode="disentangle",
         mu0=1,
     )
-    base.update(kwargs)
-    return SimParams(**base)
+    return dc.replace(base, **kwargs)
 
 
 def test_run_simulation_shapes_and_bounds() -> None:
@@ -70,3 +71,13 @@ def test_reconstruction_supports_heterogeneous_layer_sizes() -> None:
     assert result.s1.shape == (20,)
     assert result.s2.shape == (28,)
     assert result.s3.shape == (36,)
+
+
+def test_result_exposes_reproducibility_metadata() -> None:
+    result = run_simulation(_small_params(seed=77), dtype=np.float32)
+
+    assert result.metadata.seed == 77
+    assert result.metadata.dtype == "float32"
+    assert result.metadata.params_digest
+    assert len(result.metadata.params_digest) == 64
+    assert "T" in result.metadata.created_at_utc

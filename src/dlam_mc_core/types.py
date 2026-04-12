@@ -137,6 +137,21 @@ class CouplingScalars:
 
 
 @dc.dataclass(frozen=True)
+class ReproducibilityMetadata:
+    """Runtime metadata that makes one simulation run traceable and reproducible."""
+
+    created_at_utc: str
+    python_version: str
+    numpy_version: str
+    platform: str
+    simulator_version: str
+    dtype: str
+    seed: int
+    params_digest: str
+    git_commit: str | None = None
+
+
+@dc.dataclass(frozen=True)
 class SimulationResult:
     """Outputs of a simulation trajectory."""
 
@@ -148,6 +163,7 @@ class SimulationResult:
     s3: np.ndarray
     layers: LayerPack
     params: SimParams
+    metadata: ReproducibilityMetadata
 
 
 def _ensure_positive_int(name: str, value: int) -> None:

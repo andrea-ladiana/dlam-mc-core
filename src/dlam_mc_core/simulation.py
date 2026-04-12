@@ -1,15 +1,23 @@
 from __future__ import annotations
 
+import dataclasses as dc
+import hashlib
+import json
 import logging
+import os
+import platform as _platform
 import sys
+from datetime import datetime, timezone
+from importlib.metadata import PackageNotFoundError, version
 
 import numpy as np
+import numpy.typing as npt
 
 from .dynamics import compute_local_fields, glauber_step
 from .generation import generate_layer_pack
 from .kernels import compute_coupling_scalars, dreaming_core
 from .random import init_disentangle, rademacher
-from .types import LayerPack, SimParams, SimulationResult
+from .types import LayerPack, ReproducibilityMetadata, SimParams, SimulationResult
 
 
 def setup_logger(name: str = "dlam_mc_core", level: int = logging.INFO) -> logging.Logger:
@@ -23,6 +31,34 @@ def setup_logger(name: str = "dlam_mc_core", level: int = logging.INFO) -> loggi
         handler.setFormatter(fmt)
         logger.addHandler(handler)
     return logger
+
+
+def _resolve_simulator_version() -> str:
+    try:
+        return version("dlam-mc-core")
+    except PackageNotFoundError:
+        return "0+unknown"
+
+
+def _compute_params_digest(params: SimParams) -> str:
+    payload = json.dumps(dc.asdict(params), sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(payload.encode("ascii")).hexdigest()
+
+
+def build_reproducibility_metadata(params: SimParams, dtype: npt.DTypeLike) -> ReproducibilityMetadata:
+    """Build runtime metadata attached to every simulation output."""
+    git_commit = os.environ.get("GITHUB_SHA")
+    return ReproducibilityMetadata(
+        created_at_utc=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        python_version=sys.version.split()[0],
+        numpy_version=np.__version__,
+        platform=_platform.platform(),
+        simulator_version=_resolve_simulator_version(),
+        dtype=np.dtype(dtype).name,
+        seed=params.seed,
+        params_digest=_compute_params_digest(params),
+        git_commit=git_commit,
+    )
 
 
 def initialize_states(
@@ -60,16 +96,17 @@ def initialize_states(
     return s1, s2, s3
 
 
-def run_simulation(params: SimParams, dtype=np.float64) -> SimulationResult:
+def run_simulation(params: SimParams, dtype: npt.DTypeLike = np.float64) -> SimulationResult:
     """Run one Monte Carlo trajectory for the 3-layer DLAM model."""
+    resolved_dtype = np.dtype(dtype)
     rng = np.random.default_rng(params.seed)
 
-    layers = generate_layer_pack(params, rng, dtype=dtype)
+    layers = generate_layer_pack(params, rng, dtype=resolved_dtype)
     couplings = compute_coupling_scalars(layers, params)
 
-    k1 = dreaming_core(layers.L1.C.astype(dtype, copy=False), params.t1).astype(dtype, copy=False)
-    k2 = dreaming_core(layers.L2.C.astype(dtype, copy=False), params.t2).astype(dtype, copy=False)
-    k3 = dreaming_core(layers.L3.C.astype(dtype, copy=False), params.t3).astype(dtype, copy=False)
+    k1 = dreaming_core(layers.L1.C.astype(resolved_dtype, copy=False), params.t1).astype(resolved_dtype, copy=False)
+    k2 = dreaming_core(layers.L2.C.astype(resolved_dtype, copy=False), params.t2).astype(resolved_dtype, copy=False)
+    k3 = dreaming_core(layers.L3.C.astype(resolved_dtype, copy=False), params.t3).astype(resolved_dtype, copy=False)
 
     s1, s2, s3 = initialize_states(params, layers, rng)
 
@@ -105,4 +142,15 @@ def run_simulation(params: SimParams, dtype=np.float64) -> SimulationResult:
         m2[t] = np.mean((s2 * target2).astype(np.float64))
         m3[t] = np.mean((s3 * target3).astype(np.float64))
 
-    return SimulationResult(m1=m1, m2=m2, m3=m3, s1=s1, s2=s2, s3=s3, layers=layers, params=params)
+    metadata = build_reproducibility_metadata(params=params, dtype=resolved_dtype)
+    return SimulationResult(
+        m1=m1,
+        m2=m2,
+        m3=m3,
+        s1=s1,
+        s2=s2,
+        s3=s3,
+        layers=layers,
+        params=params,
+        metadata=metadata,
+    )
