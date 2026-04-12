@@ -5,7 +5,14 @@ from .io import result_to_dict, save_result_npz
 from .kernels import compute_coupling_scalars, dreaming_core
 from .random import init_disentangle, rademacher
 from .simulation import initialize_states, run_simulation, setup_logger
-from .types import CouplingScalars, LayerData, LayerPack, ReproducibilityMetadata, SimParams, SimulationResult
+from .types import (
+    CouplingScalars,
+    LayerData,
+    LayerPack,
+    ReproducibilityMetadata,
+    SimParams,
+    SimulationResult,
+)
 
 __all__ = [
     "CouplingScalars",

@@ -41,11 +41,15 @@ def _resolve_simulator_version() -> str:
 
 
 def _compute_params_digest(params: SimParams) -> str:
-    payload = json.dumps(dc.asdict(params), sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    payload = json.dumps(
+        dc.asdict(params), sort_keys=True, separators=(",", ":"), ensure_ascii=True
+    )
     return hashlib.sha256(payload.encode("ascii")).hexdigest()
 
 
-def build_reproducibility_metadata(params: SimParams, dtype: npt.DTypeLike) -> ReproducibilityMetadata:
+def build_reproducibility_metadata(
+    params: SimParams, dtype: npt.DTypeLike
+) -> ReproducibilityMetadata:
     """Build runtime metadata attached to every simulation output."""
     git_commit = os.environ.get("GITHUB_SHA")
     return ReproducibilityMetadata(
@@ -72,7 +76,8 @@ def initialize_states(
     if params.init_mode == "disentangle":
         if not params.common_index_space:
             raise ValueError(
-                "init_mode='disentangle' requires N1 == N2 == N3 because a common cue is shared across layers"
+                "init_mode='disentangle' requires N1 == N2 == N3 "
+                "because a common cue is shared across layers"
             )
         return init_disentangle(
             layers.L1.Xi[mu0],
@@ -104,9 +109,15 @@ def run_simulation(params: SimParams, dtype: npt.DTypeLike = np.float64) -> Simu
     layers = generate_layer_pack(params, rng, dtype=resolved_dtype)
     couplings = compute_coupling_scalars(layers, params)
 
-    k1 = dreaming_core(layers.L1.C.astype(resolved_dtype, copy=False), params.t1).astype(resolved_dtype, copy=False)
-    k2 = dreaming_core(layers.L2.C.astype(resolved_dtype, copy=False), params.t2).astype(resolved_dtype, copy=False)
-    k3 = dreaming_core(layers.L3.C.astype(resolved_dtype, copy=False), params.t3).astype(resolved_dtype, copy=False)
+    k1 = dreaming_core(layers.L1.C.astype(resolved_dtype, copy=False), params.t1).astype(
+        resolved_dtype, copy=False
+    )
+    k2 = dreaming_core(layers.L2.C.astype(resolved_dtype, copy=False), params.t2).astype(
+        resolved_dtype, copy=False
+    )
+    k3 = dreaming_core(layers.L3.C.astype(resolved_dtype, copy=False), params.t3).astype(
+        resolved_dtype, copy=False
+    )
 
     s1, s2, s3 = initialize_states(params, layers, rng)
 

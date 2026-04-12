@@ -42,6 +42,8 @@ def save_result_npz(result: SimulationResult, output_path: str | Path) -> Path:
         s2=result.s2,
         s3=result.s3,
         params_json=np.array(json.dumps(dc.asdict(result.params), sort_keys=True), dtype=np.str_),
-        metadata_json=np.array(json.dumps(dc.asdict(result.metadata), sort_keys=True), dtype=np.str_),
+        metadata_json=np.array(
+            json.dumps(dc.asdict(result.metadata), sort_keys=True), dtype=np.str_
+        ),
     )
     return target
