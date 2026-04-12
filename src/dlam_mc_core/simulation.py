@@ -1,0 +1,108 @@
+from __future__ import annotations
+
+import logging
+import sys
+
+import numpy as np
+
+from .dynamics import compute_local_fields, glauber_step
+from .generation import generate_layer_pack
+from .kernels import compute_coupling_scalars, dreaming_core
+from .random import init_disentangle, rademacher
+from .types import LayerPack, SimParams, SimulationResult
+
+
+def setup_logger(name: str = "dlam_mc_core", level: int = logging.INFO) -> logging.Logger:
+    """Create a stdout logger suitable for CLI and script usage."""
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    if not logger.handlers:
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setLevel(level)
+        fmt = logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
+        handler.setFormatter(fmt)
+        logger.addHandler(handler)
+    return logger
+
+
+def initialize_states(
+    params: SimParams,
+    layers: LayerPack,
+    rng: np.random.Generator,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Initialize spin states according to the selected cue strategy."""
+    mu0 = params.mu0
+
+    if params.init_mode == "disentangle":
+        if not params.common_index_space:
+            raise ValueError(
+                "init_mode='disentangle' requires N1 == N2 == N3 because a common cue is shared across layers"
+            )
+        return init_disentangle(
+            layers.L1.Xi[mu0],
+            layers.L2.Xi[mu0],
+            layers.L3.Xi[mu0],
+            epsilon=params.init_noise,
+            rng=rng,
+        )
+
+    s1 = rademacher(params.N1, rng, dtype=np.int8)
+    s2 = rademacher(params.N2, rng, dtype=np.int8)
+    s3 = rademacher(params.N3, rng, dtype=np.int8)
+
+    if params.cue_layer == 1:
+        s1 = layers.L1.Xi[mu0].copy()
+    elif params.cue_layer == 2:
+        s2 = layers.L2.Xi[mu0].copy()
+    else:
+        s3 = layers.L3.Xi[mu0].copy()
+
+    return s1, s2, s3
+
+
+def run_simulation(params: SimParams, dtype=np.float64) -> SimulationResult:
+    """Run one Monte Carlo trajectory for the 3-layer DLAM model."""
+    rng = np.random.default_rng(params.seed)
+
+    layers = generate_layer_pack(params, rng, dtype=dtype)
+    couplings = compute_coupling_scalars(layers, params)
+
+    k1 = dreaming_core(layers.L1.C.astype(dtype, copy=False), params.t1).astype(dtype, copy=False)
+    k2 = dreaming_core(layers.L2.C.astype(dtype, copy=False), params.t2).astype(dtype, copy=False)
+    k3 = dreaming_core(layers.L3.C.astype(dtype, copy=False), params.t3).astype(dtype, copy=False)
+
+    s1, s2, s3 = initialize_states(params, layers, rng)
+
+    m1 = np.empty(params.steps + 1, dtype=np.float64)
+    m2 = np.empty(params.steps + 1, dtype=np.float64)
+    m3 = np.empty(params.steps + 1, dtype=np.float64)
+
+    target1 = layers.L1.Xi[params.mu0]
+    target2 = layers.L2.Xi[params.mu0]
+    target3 = layers.L3.Xi[params.mu0]
+
+    m1[0] = np.mean((s1 * target1).astype(np.float64))
+    m2[0] = np.mean((s2 * target2).astype(np.float64))
+    m3[0] = np.mean((s3 * target3).astype(np.float64))
+
+    for t in range(1, params.steps + 1):
+        h1, h2, h3 = compute_local_fields(
+            s1,
+            s2,
+            s3,
+            layers=layers,
+            k1=k1,
+            k2=k2,
+            k3=k3,
+            couplings=couplings,
+        )
+
+        s1 = glauber_step(s1, h1, params.beta, rng)
+        s2 = glauber_step(s2, h2, params.beta, rng)
+        s3 = glauber_step(s3, h3, params.beta, rng)
+
+        m1[t] = np.mean((s1 * target1).astype(np.float64))
+        m2[t] = np.mean((s2 * target2).astype(np.float64))
+        m3[t] = np.mean((s3 * target3).astype(np.float64))
+
+    return SimulationResult(m1=m1, m2=m2, m3=m3, s1=s1, s2=s2, s3=s3, layers=layers, params=params)

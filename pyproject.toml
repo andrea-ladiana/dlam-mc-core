@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dlam-mc-core"
+version = "0.1.0"
+description = "Monte Carlo simulation core for the Dreaming L-directional Associative Memory (DLAM)."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Andrea Ladiana" }
+]
+license = { file = "LICENSE" }
+keywords = [
+  "statistical mechanics",
+  "hopfield networks",
+  "associative memory",
+  "monte carlo",
+  "dlam",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+  "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+]
+performance = [
+  "numba>=0.59",
+]
+
+[project.urls]
+Homepage = "https://github.com/andrealadiana/dlam-mc-core"
+Repository = "https://github.com/andrealadiana/dlam-mc-core"
+Issues = "https://github.com/andrealadiana/dlam-mc-core/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
