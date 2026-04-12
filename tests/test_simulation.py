@@ -3,7 +3,7 @@ import dataclasses as dc
 import numpy as np
 import pytest
 
-from dlam_mc_core import SimParams, run_simulation
+from dlam_mc_core import SimParams, run_multi_seed, run_simulation
 
 
 def _small_params(**kwargs) -> SimParams:
@@ -81,3 +81,17 @@ def test_result_exposes_reproducibility_metadata() -> None:
     assert result.metadata.params_digest
     assert len(result.metadata.params_digest) == 64
     assert "T" in result.metadata.created_at_utc
+
+
+def test_run_multi_seed_matches_individual_runs() -> None:
+    base = _small_params(steps=5)
+    seeds = [13, 17, 23]
+
+    batched = run_multi_seed(base, seeds, dtype=np.float32)
+    singles = [run_simulation(dc.replace(base, seed=s), dtype=np.float32) for s in seeds]
+
+    assert [res.metadata.seed for res in batched] == seeds
+    for b_res, s_res in zip(batched, singles):
+        assert np.array_equal(b_res.m1, s_res.m1)
+        assert np.array_equal(b_res.m2, s_res.m2)
+        assert np.array_equal(b_res.m3, s_res.m3)

@@ -43,6 +43,12 @@ At every Monte Carlo step, each layer field is computed in factorized form:
 
 This reproduces the same algebraic structure as the optimized script in the original project while keeping the code fully readable and testable.
 
+For layer 1, the implemented structure is:
+
+`h_1 = hat_xi_1^T [ f_1 A_1 (hat_xi_1 s_1) + c_12 (hat_xi_2 s_2) + c_13 (hat_xi_3 s_3) ]`
+
+and analogously for layers 2 and 3 by cyclic permutation.
+
 ## Dynamics
 
 Spins are updated synchronously with Glauber dynamics:
@@ -50,3 +56,23 @@ Spins are updated synchronously with Glauber dynamics:
 `P(s_i = +1) = 0.5 * (1 + tanh(beta * h_i))`.
 
 Magnetizations are tracked against the target archetype `mu0` for each layer across the full trajectory.
+
+## Initialization modes
+
+- `disentangle`: all layers receive the same mixed cue built from the three target archetypes, with random tie-breaking and optional flip noise `init_noise`.
+- `reconstruction`: one selected `cue_layer` is initialized exactly on target `xi^{mu0}`, while other layers start from random Rademacher states.
+
+The `disentangle` mode requires a common index space (`N1 = N2 = N3`), matching the cue construction used in the manuscript.
+
+## Formula-to-code map
+
+- Data generation and normalization: `generation.py`
+- Dreaming kernel solve: `kernels.py::dreaming_core`
+- Local field factorization and Glauber update: `dynamics.py`
+- Simulation orchestration and metadata capture: `simulation.py`
+- Portable result serialization: `io.py`
+
+## Numerical reproducibility
+
+Each simulation output is tagged with a SHA-256 digest of `SimParams` and full runtime metadata.
+This enables exact run identification and safe comparison across environments.

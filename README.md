@@ -18,10 +18,12 @@ The simulator implements a 3-layer DLAM with:
 ## Key features
 
 - reproducible runs via explicit random seed control,
+- per-run reproducibility metadata (runtime, dtype, parameter digest, optional git SHA),
 - typed dataclass API for parameters and outputs,
 - clear module split between generation, kernels, dynamics, and orchestration,
 - portable pure-NumPy implementation,
-- test suite and CI workflow included.
+- CLI entrypoint for quick scripted execution,
+- test suite and CI workflow with lint/format/coverage gates included.
 
 ## Installation
 
@@ -55,6 +57,43 @@ result = run_simulation(params)
 print(result.m1[-1], result.m2[-1], result.m3[-1])
 ```
 
+Run the same setup across multiple seeds:
+
+```python
+from dlam_mc_core import SimParams, run_multi_seed
+
+base = SimParams(steps=100, init_mode="disentangle")
+results = run_multi_seed(base, seeds=[0, 1, 2, 3], dtype="float32")
+print([r.m1[-1] for r in results])
+```
+
+## Command line usage
+
+```bash
+python -m dlam_mc_core --steps 200 --seed 7 --beta 1.5 --dtype float32
+```
+
+Optionally persist one run to NPZ:
+
+```bash
+python -m dlam_mc_core --steps 200 --seed 7 --output outputs/run_seed7.npz
+```
+
+## Reproducibility contract
+
+Each `SimulationResult` carries a `metadata` object including:
+
+- UTC run timestamp,
+- Python and NumPy versions,
+- platform descriptor,
+- simulator package version,
+- compute dtype,
+- random seed,
+- SHA-256 digest of all simulation parameters,
+- optional `GITHUB_SHA` if present in environment.
+
+This metadata is written by `save_result_npz(...)` alongside trajectories and final states.
+
 ## Project layout
 
 ```text
@@ -78,6 +117,14 @@ repository/
 Run tests with:
 
 ```bash
+pytest
+```
+
+Local quality checks:
+
+```bash
+ruff check .
+ruff format --check .
 pytest
 ```
 

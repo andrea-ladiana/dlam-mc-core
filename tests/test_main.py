@@ -27,12 +27,63 @@ def test_main_entrypoint_runs_with_mocked_dependencies(monkeypatch) -> None:
     )
 
     monkeypatch.setattr(module_main, "setup_logger", lambda level=20: logger)
-    monkeypatch.setattr(module_main, "run_simulation", lambda params: dummy_result)
+    monkeypatch.setattr(module_main, "run_simulation", lambda params, dtype: dummy_result)
 
-    module_main.main()
+    module_main.main([])
 
     assert any("Running DLAM Monte Carlo core demo" in msg for msg in logger.messages)
     assert any("Final magnetizations" in msg for msg in logger.messages)
+
+
+def test_main_cli_forwards_arguments_and_output(monkeypatch, tmp_path) -> None:
+    logger = _DummyLogger()
+    dummy_result = SimpleNamespace(
+        m1=np.array([0.0, 0.11], dtype=np.float64),
+        m2=np.array([0.0, 0.22], dtype=np.float64),
+        m3=np.array([0.0, 0.33], dtype=np.float64),
+    )
+    captured: dict[str, object] = {}
+
+    def _mock_run(params: SimParams, dtype) -> SimpleNamespace:
+        captured["params"] = params
+        captured["dtype"] = dtype
+        return dummy_result
+
+    def _mock_save(_result, output_path: str):
+        captured["output"] = output_path
+        return tmp_path / "saved.npz"
+
+    monkeypatch.setattr(module_main, "setup_logger", lambda level=20: logger)
+    monkeypatch.setattr(module_main, "run_simulation", _mock_run)
+    monkeypatch.setattr(module_main, "save_result_npz", _mock_save)
+
+    out = str(tmp_path / "run.npz")
+    module_main.main(
+        [
+            "--steps",
+            "7",
+            "--seed",
+            "19",
+            "--beta",
+            "1.7",
+            "--init-mode",
+            "reconstruction",
+            "--dtype",
+            "float32",
+            "--output",
+            out,
+        ]
+    )
+
+    params = captured["params"]
+    assert isinstance(params, SimParams)
+    assert params.steps == 7
+    assert params.seed == 19
+    assert params.beta == 1.7
+    assert params.init_mode == "reconstruction"
+    assert captured["dtype"] is np.float32
+    assert captured["output"] == out
+    assert any("Saved simulation output" in msg for msg in logger.messages)
 
 
 def test_private_metadata_helpers_cover_fallback_and_digest(monkeypatch) -> None:

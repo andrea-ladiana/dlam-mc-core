@@ -165,3 +165,16 @@ def run_simulation(params: SimParams, dtype: npt.DTypeLike = np.float64) -> Simu
         params=params,
         metadata=metadata,
     )
+
+
+def run_multi_seed(
+    base_params: SimParams,
+    seeds: list[int],
+    dtype: npt.DTypeLike = np.float64,
+) -> list[SimulationResult]:
+    """Run the same setup over multiple random seeds."""
+    results: list[SimulationResult] = []
+    for seed in seeds:
+        params = dc.replace(base_params, seed=int(seed))
+        results.append(run_simulation(params=params, dtype=dtype))
+    return results
