@@ -94,7 +94,3 @@ pytest
 ## License
 
 MIT License, Copyright (c) 2026 Andrea Ladiana.
-
-## Citation
-
-See `CITATION.cff` for citation metadata.
