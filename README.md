@@ -1,11 +1,6 @@
 # DLAM Monte Carlo Core
 
-A clean, publication-grade Python implementation of the **Monte Carlo simulation core** for the Dreaming L-directional Associative Memory (DLAM) model.
-
-This repository intentionally focuses on the **core simulator** and excludes heavy numerical experiment pipelines, plotting batches, and manuscript-specific post-processing.
-
-## Scientific scope
-
+Python implementation of the Monte Carlo simulation core for the Dreaming L-directional Associative Memory (DLAM) model.
 The simulator implements a 3-layer DLAM with:
 
 - noisy supervised data generation per layer,
@@ -79,38 +74,6 @@ Optionally persist one run to NPZ:
 python -m dlam_mc_core --steps 200 --seed 7 --output outputs/run_seed7.npz
 ```
 
-## Reproducibility contract
-
-Each `SimulationResult` carries a `metadata` object including:
-
-- UTC run timestamp,
-- Python and NumPy versions,
-- platform descriptor,
-- simulator package version,
-- compute dtype,
-- random seed,
-- SHA-256 digest of all simulation parameters,
-- optional `GITHUB_SHA` if present in environment.
-
-This metadata is written by `save_result_npz(...)` alongside trajectories and final states.
-
-## Project layout
-
-```text
-repository/
-  src/dlam_mc_core/
-    __init__.py
-    __main__.py
-    types.py
-    random.py
-    generation.py
-    kernels.py
-    dynamics.py
-    simulation.py
-  tests/
-  docs/
-  examples/
-```
 
 ## Verification
 
